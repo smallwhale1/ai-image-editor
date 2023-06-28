@@ -1,13 +1,14 @@
 import "./App.css";
-import ImageEditor from "./ImageEditor";
+import BufferedDrawing from "./BufferedDrawing";
+import GenerativeFill from "./GenerativeFill";
+
+// props.screentolocatransform
 
 function App() {
   return (
     <div className="App">
-      <h1>
-        <span className="blue-text">AI</span> Image Editor
-      </h1>
-      <ImageEditor />
+      {/* <BufferedDrawing /> */}
+      <GenerativeFill />
     </div>
   );
 }
