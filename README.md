@@ -2,4 +2,4 @@
 
 A `React.JS`, `Typescript`, `HTML Canvas`, and `OpenAI` project that allows for selective editing of uploaded images guided by a user-supplied prompt.
 
-![editor-mov](https://github.com/smallwhale1/ai-image-editor/assets/90478438/4893000f-0d26-416a-a832-d5cd5454a3f9)
+![final-generative-fill_AdobeExpress](https://github.com/smallwhale1/ai-image-editor/assets/90478438/3c325120-2395-4a8a-8ccd-d2d5ecd96c31)
