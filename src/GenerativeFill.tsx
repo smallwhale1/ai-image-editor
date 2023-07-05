@@ -20,8 +20,16 @@ import Buttons from "./components/GenerativeFillButtons";
 import styles from "./GenerativeFill.module.scss";
 
 /**
- * For images not 1024x1024 fill in the rest in solid black, or a
+ * TODO: For images not 1024x1024 fill in the rest in solid black, or a
  * reflected version of the image.
+ */
+
+/**
+ * Steps for creating image history:
+ * Every single time save is clicked, or an image is edited, it is stored
+ * in the tree.
+ *
+ * Parent keeps track of child images.
  */
 
 /**
@@ -58,8 +66,50 @@ const GenerativeFill = () => {
   const [loading, setLoading] = useState(false);
   // used to store the current image loaded to the main canvas
   const currImg = useRef<HTMLImageElement | null>(null);
-  // ref to store history
-  const undoStack = useRef<ImageData[]>([]);
+  const originalImg = useRef<HTMLImageElement | null>(null);
+  // stores history of data urls
+  const undoStack = useRef<string[]>([]);
+  // stores redo stack
+  const redoStack = useRef<string[]>([]);
+
+  // Undo and Redo
+  const handleUndo = () => {
+    const ctx = ImageUtility.getCanvasContext(canvasRef);
+    if (!ctx || !currImg.current || !canvasRef.current) return;
+
+    const target = undoStack.current[undoStack.current.length - 1];
+    if (!target) {
+      ImageUtility.drawImgToCanvas(currImg.current, canvasRef);
+    } else {
+      redoStack.current = [...redoStack.current, canvasRef.current.toDataURL()];
+      const img = new Image();
+      img.src = target;
+      ImageUtility.drawImgToCanvas(img, canvasRef);
+      undoStack.current = undoStack.current.slice(0, -1);
+    }
+  };
+
+  const handleRedo = () => {
+    // TODO: handle undo as well
+    const target = redoStack.current[redoStack.current.length - 1];
+    if (!target) {
+    } else {
+      const img = new Image();
+      img.src = target;
+      ImageUtility.drawImgToCanvas(img, canvasRef);
+      redoStack.current = redoStack.current.slice(0, -1);
+    }
+  };
+
+  const handleReset = () => {
+    if (!canvasRef.current || !currImg.current) return;
+    const ctx = ImageUtility.getCanvasContext(canvasRef);
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+    undoStack.current = [];
+    redoStack.current = [];
+    ImageUtility.drawImgToCanvas(currImg.current, canvasRef, true);
+  };
 
   // initiate brushing
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -68,6 +118,8 @@ const GenerativeFill = () => {
     const ctx = ImageUtility.getCanvasContext(canvasRef);
     if (!ctx) return;
 
+    undoStack.current = [...undoStack.current, canvasRef.current.toDataURL()];
+    redoStack.current = [];
     setIsBrushing(true);
     const { x, y } = PointerHandler.getPointRelativeToElement(
       canvas,
@@ -87,9 +139,10 @@ const GenerativeFill = () => {
 
   // stop brushing, push to undo stack
   const handlePointerUp = (e: React.PointerEvent) => {
-    const ctx = ImageUtility.getCanvasContext(canvasBackgroundRef);
+    if (!canvasRef.current || !isBrushing) return;
+    const ctx = ImageUtility.getCanvasContext(canvasRef);
     if (!ctx) return;
-    if (!isBrushing) return;
+
     setIsBrushing(false);
   };
 
@@ -131,17 +184,13 @@ const GenerativeFill = () => {
 
   // first load
   useEffect(() => {
+    if (!canvasRef.current) return;
     const img = new Image();
     img.src = "/assets/art.jpeg";
     ImageUtility.drawImgToCanvas(img, canvasRef);
     currImg.current = img;
+    originalImg.current = img;
   }, [canvasRef]);
-
-  useEffect(() => {
-    if (!canvasBackgroundRef.current) return;
-    const ctx = ImageUtility.getCanvasContext(canvasBackgroundRef);
-    if (!ctx) return;
-  }, [canvasBackgroundRef]);
 
   // handles brush sizing
   useEffect(() => {
@@ -222,16 +271,16 @@ const GenerativeFill = () => {
         ImageUtility.getCanvasImg(img)
       );
 
-      // const res = await ImageUtility.getEdit(
-      //   imgBlob,
-      //   maskBlob,
-      //   input !== ""
-      //     ? input + " in the same style"
-      //     : "Fill in the image in the same style",
-      //   1
-      // );
-
-      const res = await ImageUtility.mockGetEdit();
+      const res = await ImageUtility.getEdit(
+        imgBlob,
+        maskBlob,
+        input !== ""
+          ? input + " in the same style"
+          : "Fill in the image in the same style",
+        2
+      );
+      originalImg.current = currImg.current;
+      // const res = await ImageUtility.mockGetEdit();
       const { urls } = res as APISuccess;
       const image = new Image();
       image.src = urls[0];
@@ -250,10 +299,8 @@ const GenerativeFill = () => {
         <h1>Generative Fill</h1>
         <Buttons
           canvasRef={canvasRef}
-          backgroundref={canvasBackgroundRef}
-          currImg={currImg}
           getEdit={getEdit}
-          undoStack={undoStack}
+          handleReset={handleReset}
           loading={loading}
         />
       </div>
@@ -328,10 +375,10 @@ const GenerativeFill = () => {
             />
           </IconButton>
           {/* Undo and Redo */}
-          {/* <IconButton
+          <IconButton
             onPointerDown={(e) => {
               e.stopPropagation();
-              console.log(undoStack.current);
+              handleUndo();
             }}
             onPointerUp={(e) => {
               e.stopPropagation();
@@ -339,18 +386,27 @@ const GenerativeFill = () => {
           >
             <CiUndo />
           </IconButton>
-          <IconButton onClick={() => {}}>
+          <IconButton
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              handleRedo();
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+            }}
+          >
             <CiRedo />
-          </IconButton> */}
+          </IconButton>
         </div>
         {/* Edits box */}
         <motion.div className={styles.editsBox}>
-          {edits.map((edit) => (
+          {edits.map((edit, i) => (
             <img
-              key={edit}
+              key={i}
               width={100}
               height={100}
               src={edit}
+              style={{ cursor: "pointer" }}
               onClick={() => {
                 const img = new Image();
                 img.src = edit;
@@ -359,6 +415,36 @@ const GenerativeFill = () => {
               }}
             />
           ))}
+          {edits.length > 0 && (
+            <div style={{ position: "relative" }}>
+              <label
+                style={{
+                  position: "absolute",
+                  bottom: 10,
+                  left: 10,
+                  color: "#ffffff",
+                  fontSize: "0.8rem",
+                  letterSpacing: "1px",
+                  textTransform: "uppercase",
+                }}
+              >
+                Original
+              </label>
+              <img
+                width={100}
+                height={100}
+                src={originalImg.current?.src}
+                style={{ cursor: "pointer" }}
+                onClick={() => {
+                  if (!originalImg.current) return;
+                  const img = new Image();
+                  img.src = originalImg.current.src;
+                  ImageUtility.drawImgToCanvas(img, canvasRef);
+                  currImg.current = img;
+                }}
+              />
+            </div>
+          )}
         </motion.div>
       </div>
       <motion.div
@@ -373,6 +459,8 @@ const GenerativeFill = () => {
           type="text"
           label="Prompt"
           placeholder="Prompt..."
+          // InputLabelProps={{ style: { fontSize: "1.2rem" } }}
+          // inputProps={{ style: { fontSize: "1.2rem" } }}
           sx={{
             backgroundColor: "#ffffff",
             position: "absolute",

@@ -6,29 +6,17 @@ import { Oval } from "react-loader-spinner";
 
 interface ButtonContainerProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
-  backgroundref: React.RefObject<HTMLCanvasElement>;
-  currImg: React.MutableRefObject<HTMLImageElement | null>;
-  undoStack: React.MutableRefObject<ImageData[]>;
+  handleReset: () => void;
   getEdit: () => Promise<void>;
   loading: boolean;
 }
 
 const Buttons = ({
   canvasRef,
-  backgroundref,
-  currImg,
-  undoStack,
+  handleReset,
   loading,
   getEdit,
 }: ButtonContainerProps) => {
-  const handleReset = () => {
-    if (!canvasRef.current || !currImg.current) return;
-    const ctx = ImageUtility.getCanvasContext(canvasRef);
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvasSize, canvasSize);
-    ImageUtility.drawImgToCanvas(currImg.current, canvasRef, true);
-  };
-
   return (
     <div className={styles.btnContainer}>
       <Button onClick={handleReset}>Reset</Button>

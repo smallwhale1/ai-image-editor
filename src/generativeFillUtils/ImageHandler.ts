@@ -85,7 +85,6 @@ export class ImageUtility {
     const downloadLink = document.createElement("a");
     downloadLink.href = url;
     downloadLink.download = "canvas";
-
     downloadLink.click();
     downloadLink.remove();
   };
@@ -113,7 +112,8 @@ export class ImageUtility {
       const ctx = this.getCanvasContext(canvasRef);
       if (!ctx) return;
       ctx.globalCompositeOperation = "source-over";
-      const scale = Math.min(canvasSize / img.width, canvasSize / img.height);
+      // TODO: support more than square-shaped images
+      const scale = Math.max(canvasSize / img.width, canvasSize / img.height);
       const width = img.width * scale;
       const height = img.height * scale;
       ctx.clearRect(0, 0, canvasSize, canvasSize);
@@ -123,7 +123,7 @@ export class ImageUtility {
         const ctx = this.getCanvasContext(canvasRef);
         if (!ctx) return;
         ctx.globalCompositeOperation = "source-over";
-        const scale = Math.min(canvasSize / img.width, canvasSize / img.height);
+        const scale = Math.max(canvasSize / img.width, canvasSize / img.height);
         const width = img.width * scale;
         const height = img.height * scale;
         ctx.clearRect(0, 0, canvasSize, canvasSize);
@@ -138,8 +138,12 @@ export class ImageUtility {
     canvas.width = canvasSize;
     canvas.height = canvasSize;
     const ctx = canvas.getContext("2d");
+    // fix scaling
+    const scale = Math.max(canvasSize / img.width, canvasSize / img.height);
+    const width = img.width * scale;
+    const height = img.height * scale;
     ctx?.clearRect(0, 0, canvasSize, canvasSize);
-    ctx?.drawImage(img, 0, 0, canvasSize, canvasSize);
+    ctx?.drawImage(img, 0, 0, width, height);
 
     return canvas;
   };
