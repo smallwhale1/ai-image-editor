@@ -1,4 +1,4 @@
-# AI Generative Fill Editor
+# 📷 AI Generative Fill Editor
 
 A `React.JS`, `Typescript`, `HTML Canvas`, and `OpenAI` project that allows for selective editing of uploaded images guided by a user-supplied prompt.
 
