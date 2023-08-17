@@ -112,8 +112,18 @@ export class ImageUtility {
 
   static getCroppedImg = (
     img: HTMLImageElement,
-    readablePaddingData: PaddingInfo
-  ) => {};
+    readablePaddingData: PaddingInfo,
+    width: number,
+    height: number
+  ) => {
+    if (img.naturalHeight > img.naturalWidth) {
+      // horizontal padding, x offset
+      const xOffset = (canvasSize - width) / 2;
+    } else {
+      // vertical padding, y offset
+      const yOffset = (canvasSize - height) / 2;
+    }
+  };
 
   static drawImgToCanvas = (
     img: HTMLImageElement,
@@ -129,57 +139,14 @@ export class ImageUtility {
       if (!ctx) return;
       ctx.globalCompositeOperation = "source-over";
       // TODO: support more than square-shaped images
-      // const scale = Math.min(canvasSize / imgWidth, canvasSize / imgHeight);
-      // const width = imgWidth * scale;
-      // const height = imgHeight * scale;
+      const scale = Math.min(
+        canvasSize / img.naturalWidth,
+        canvasSize / img.naturalHeight
+      );
+      const finalWidth = img.naturalWidth * scale;
+      const finalHeight = img.naturalHeight * scale;
       ctx.clearRect(0, 0, width, height);
-      // handle padding
-      // if (drawPadding) {
-      //   ctx.fillStyle = bgColor;
-      //   ctx.fillRect(0, 0, canvasSize, canvasSize);
-      //   if (readablePaddingData) {
-      //     ctx.drawImage(
-      //       img,
-      //       readablePaddingData.offsetX,
-      //       readablePaddingData.offsetY,
-      //       readablePaddingData.imgWidth,
-      //       readablePaddingData.imgHeight,
-      //       readablePaddingData.offsetX,
-      //       readablePaddingData.offsetY,
-      //       readablePaddingData.imgWidth,
-      //       readablePaddingData.imgHeight
-      //     );
-      //   } else {
-      //     // extract and set padding data
-      //     if (img.naturalHeight > img.naturalWidth) {
-      //       // horizontal padding, x offset
-      //       const xOffset = (canvasSize - width) / 2;
-      //       if (mutablePaddingData) {
-      //         mutablePaddingData.current = {
-      //           imgWidth: width,
-      //           imgHeight: height,
-      //           offsetX: xOffset,
-      //           offsetY: 0,
-      //         };
-      //       }
-      //       ctx.drawImage(img, xOffset, 0, width, height);
-      //     } else {
-      //       // vertical padding, y offset
-      //       const yOffset = (canvasSize - height) / 2;
-      //       if (mutablePaddingData) {
-      //         mutablePaddingData.current = {
-      //           imgWidth: width,
-      //           imgHeight: height,
-      //           offsetX: 0,
-      //           offsetY: yOffset,
-      //         };
-      //       }
-      //       ctx.drawImage(img, 0, yOffset, width, height);
-      //     }
-      //   }
-      // } else {
-      ctx.drawImage(img, 0, 0, width, height);
-      // }
+      ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
     };
 
     if (img.complete) {

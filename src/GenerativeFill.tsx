@@ -45,12 +45,6 @@ enum BrushStyle {
   MARQUEE,
 }
 
-interface ImageEdit {
-  imgElement: HTMLImageElement;
-  parent: ImageEdit;
-  children: ImageEdit[];
-}
-
 interface ImageDimensions {
   width: number;
   height: number;
@@ -89,10 +83,6 @@ const GenerativeFill = () => {
     imgHeight: 0,
     offsetY: 0,
     offsetX: 0,
-  });
-  const imgDims = useRef<ImageDimensions>({
-    width: 0,
-    height: 0,
   });
 
   // Undo and Redo
@@ -242,8 +232,6 @@ const GenerativeFill = () => {
       const width = imgWidth * scale;
       const height = imgHeight * scale;
       setCanvasDims({ width, height });
-      // pass in the new canvas size
-      ImageUtility.drawImgToCanvas(img, canvasRef, width, height, true);
     };
   }, [canvasRef]);
 
@@ -307,29 +295,29 @@ const GenerativeFill = () => {
       const image = new Image();
       const imgUrl = URL.createObjectURL(file);
       image.src = imgUrl;
+      currImg.current = image;
 
       image.onload = () => {
-        const imgWidth = image.naturalWidth;
-        const imgHeight = image.naturalHeight;
-        const scale = Math.min(canvasSize / imgWidth, canvasSize / imgHeight);
-        const width = imgWidth * scale;
-        const height = imgHeight * scale;
+        const scale = Math.min(
+          canvasSize / image.naturalWidth,
+          canvasSize / image.naturalHeight
+        );
+        const width = image.naturalWidth * scale;
+        const height = image.naturalHeight * scale;
         setCanvasDims({ width, height });
-        // pass in the new canvas size
-        ImageUtility.drawImgToCanvas(image, canvasRef, width, height);
       };
-      // ImageUtility.drawImgToCanvas(
-      //   image,
-      //   canvasRef,
-      //   canvasDims.width,
-      //   canvasDims.height,
-      //   true,
-      //   paddingInfo,
-      //   undefined
-      // );
-      currImg.current = image;
     }
   };
+
+  useEffect(() => {
+    if (!currImg.current) return;
+    ImageUtility.drawImgToCanvas(
+      currImg.current,
+      canvasRef,
+      canvasDims.width,
+      canvasDims.height
+    );
+  }, [canvasDims]);
 
   // Get AI Edit
   const getEdit = async () => {
