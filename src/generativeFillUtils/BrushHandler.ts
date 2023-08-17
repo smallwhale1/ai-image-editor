@@ -22,13 +22,10 @@ export class BrushHandler {
     x: number,
     y: number,
     brushRadius: number,
-    ctx: CanvasRenderingContext2D,
-    fillColor: string,
-    erase: boolean
+    ctx: CanvasRenderingContext2D
   ) => {
     ctx.globalCompositeOperation = "destination-out";
     // ctx.globalCompositeOperation = erase ? "destination-out" : "source-over";
-    ctx.fillStyle = fillColor;
     ctx.shadowColor = eraserColor;
     ctx.shadowBlur = 5;
     ctx.beginPath();
@@ -63,9 +60,7 @@ export class BrushHandler {
     startPoint: Point,
     endPoint: Point,
     brushRadius: number,
-    ctx: CanvasRenderingContext2D,
-    fillColor: string,
-    erase: boolean
+    ctx: CanvasRenderingContext2D
   ) => {
     const dist = GenerativeFillMathHelpers.distanceBetween(
       startPoint,
@@ -78,9 +73,7 @@ export class BrushHandler {
         startPoint.x * (1 - s) + endPoint.x * s,
         startPoint.y * (1 - s) + endPoint.y * s,
         brushRadius,
-        ctx,
-        fillColor,
-        erase
+        ctx
       );
     }
   };

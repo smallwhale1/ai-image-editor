@@ -1,6 +1,6 @@
 import { RefObject } from "react";
 import { OPENAI_KEY } from "../keys";
-import { canvasSize } from "./generativeFillConstants";
+import { bgColor, canvasSize } from "./generativeFillConstants";
 
 export interface APISuccess {
   status: "success";
@@ -10,6 +10,13 @@ export interface APISuccess {
 export interface APIError {
   status: "error";
   message: string;
+}
+
+export interface PaddingInfo {
+  imgWidth: number;
+  imgHeight: number;
+  offsetX: number;
+  offsetY: number;
 }
 
 export class ImageUtility {
@@ -103,48 +110,116 @@ export class ImageUtility {
     };
   };
 
+  static getCroppedImg = (
+    img: HTMLImageElement,
+    readablePaddingData: PaddingInfo
+  ) => {};
+
   static drawImgToCanvas = (
     img: HTMLImageElement,
     canvasRef: React.RefObject<HTMLCanvasElement>,
-    loaded?: boolean
+    width: number,
+    height: number,
+    drawPadding?: boolean,
+    mutablePaddingData?: React.MutableRefObject<PaddingInfo>,
+    readablePaddingData?: PaddingInfo
   ) => {
-    if (loaded) {
+    const drawImg = (img: HTMLImageElement) => {
       const ctx = this.getCanvasContext(canvasRef);
       if (!ctx) return;
       ctx.globalCompositeOperation = "source-over";
       // TODO: support more than square-shaped images
-      const scale = Math.max(canvasSize / img.width, canvasSize / img.height);
-      const width = img.width * scale;
-      const height = img.height * scale;
-      ctx.clearRect(0, 0, canvasSize, canvasSize);
+      // const scale = Math.min(canvasSize / imgWidth, canvasSize / imgHeight);
+      // const width = imgWidth * scale;
+      // const height = imgHeight * scale;
+      ctx.clearRect(0, 0, width, height);
+      // handle padding
+      // if (drawPadding) {
+      //   ctx.fillStyle = bgColor;
+      //   ctx.fillRect(0, 0, canvasSize, canvasSize);
+      //   if (readablePaddingData) {
+      //     ctx.drawImage(
+      //       img,
+      //       readablePaddingData.offsetX,
+      //       readablePaddingData.offsetY,
+      //       readablePaddingData.imgWidth,
+      //       readablePaddingData.imgHeight,
+      //       readablePaddingData.offsetX,
+      //       readablePaddingData.offsetY,
+      //       readablePaddingData.imgWidth,
+      //       readablePaddingData.imgHeight
+      //     );
+      //   } else {
+      //     // extract and set padding data
+      //     if (img.naturalHeight > img.naturalWidth) {
+      //       // horizontal padding, x offset
+      //       const xOffset = (canvasSize - width) / 2;
+      //       if (mutablePaddingData) {
+      //         mutablePaddingData.current = {
+      //           imgWidth: width,
+      //           imgHeight: height,
+      //           offsetX: xOffset,
+      //           offsetY: 0,
+      //         };
+      //       }
+      //       ctx.drawImage(img, xOffset, 0, width, height);
+      //     } else {
+      //       // vertical padding, y offset
+      //       const yOffset = (canvasSize - height) / 2;
+      //       if (mutablePaddingData) {
+      //         mutablePaddingData.current = {
+      //           imgWidth: width,
+      //           imgHeight: height,
+      //           offsetX: 0,
+      //           offsetY: yOffset,
+      //         };
+      //       }
+      //       ctx.drawImage(img, 0, yOffset, width, height);
+      //     }
+      //   }
+      // } else {
       ctx.drawImage(img, 0, 0, width, height);
+      // }
+    };
+
+    if (img.complete) {
+      drawImg(img);
     } else {
       img.onload = () => {
-        const ctx = this.getCanvasContext(canvasRef);
-        if (!ctx) return;
-        ctx.globalCompositeOperation = "source-over";
-        const scale = Math.max(canvasSize / img.width, canvasSize / img.height);
-        const width = img.width * scale;
-        const height = img.height * scale;
-        ctx.clearRect(0, 0, canvasSize, canvasSize);
-        ctx.drawImage(img, 0, 0, width, height);
+        drawImg(img);
       };
     }
   };
 
   // The image must be loaded!
-  static getCanvasImg = (img: HTMLImageElement): HTMLCanvasElement => {
+  static getCanvasImg = (
+    img: HTMLImageElement
+  ): HTMLCanvasElement | undefined => {
     const canvas = document.createElement("canvas");
     canvas.width = canvasSize;
     canvas.height = canvasSize;
     const ctx = canvas.getContext("2d");
+    if (!ctx) return;
     // fix scaling
-    const scale = Math.max(canvasSize / img.width, canvasSize / img.height);
+    const scale = Math.min(canvasSize / img.width, canvasSize / img.height);
     const width = img.width * scale;
     const height = img.height * scale;
     ctx?.clearRect(0, 0, canvasSize, canvasSize);
-    ctx?.drawImage(img, 0, 0, width, height);
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
 
+    // extract and set padding data
+    if (img.naturalHeight > img.naturalWidth) {
+      // horizontal padding, x offset
+      const xOffset = (canvasSize - width) / 2;
+
+      ctx.drawImage(img, xOffset, 0, width, height);
+    } else {
+      // vertical padding, y offset
+      const yOffset = (canvasSize - height) / 2;
+
+      ctx.drawImage(img, 0, yOffset, width, height);
+    }
     return canvas;
   };
 }
