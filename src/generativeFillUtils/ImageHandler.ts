@@ -158,7 +158,7 @@ export class ImageUtility {
     }
   };
 
-  static convertImageToCanvasDataURL = async (
+  static convertImgToCanvasUrl = async (
     imageSrc: string,
     width: number,
     height: number
@@ -189,12 +189,6 @@ export class ImageUtility {
       const ctx = this.getCanvasContext(canvasRef);
       if (!ctx) return;
       ctx.globalCompositeOperation = "source-over";
-      // const scale = Math.min(
-      //   canvasSize / img.naturalWidth,
-      //   canvasSize / img.naturalHeight
-      // );
-      // const finalWidth = img.naturalWidth * scale;
-      // const finalHeight = img.naturalHeight * scale;
       ctx.clearRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
     };
@@ -210,7 +204,8 @@ export class ImageUtility {
 
   // The image must be loaded!
   static getCanvasMask = (
-    srcCanvas: HTMLCanvasElement
+    srcCanvas: HTMLCanvasElement,
+    paddedCanvas: HTMLCanvasElement
   ): HTMLCanvasElement | undefined => {
     const canvas = document.createElement("canvas");
     canvas.width = canvasSize;
@@ -218,8 +213,9 @@ export class ImageUtility {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx?.clearRect(0, 0, canvasSize, canvasSize);
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, canvasSize, canvasSize);
+    // ctx.fillStyle = bgColor;
+    // ctx.fillRect(0, 0, canvasSize, canvasSize);
+    ctx.drawImage(paddedCanvas, 0, 0);
 
     // extract and set padding data
     if (srcCanvas.height > srcCanvas.width) {
@@ -236,6 +232,72 @@ export class ImageUtility {
     return canvas;
   };
 
+  static drawHorizontalReflection = (
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    xOffset: number
+  ) => {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < canvas.height; i++) {
+      for (let j = 0; j < xOffset; j++) {
+        const targetIdx = 4 * (i * canvas.width + j);
+        const sourceI = i;
+        const sourceJ = xOffset + (xOffset - j);
+        const sourceIdx = 4 * (sourceI * canvas.width + sourceJ);
+        data[targetIdx] = data[sourceIdx];
+        data[targetIdx + 1] = data[sourceIdx + 1];
+        data[targetIdx + 2] = data[sourceIdx + 2];
+      }
+    }
+    for (let i = 0; i < canvas.height; i++) {
+      for (let j = canvas.width - 1; j >= canvas.width - 1 - xOffset; j--) {
+        const targetIdx = 4 * (i * canvas.width + j);
+        const sourceI = i;
+        const sourceJ =
+          canvas.width - 1 - xOffset - (xOffset - (canvas.width - j));
+        const sourceIdx = 4 * (sourceI * canvas.width + sourceJ);
+        data[targetIdx] = data[sourceIdx];
+        data[targetIdx + 1] = data[sourceIdx + 1];
+        data[targetIdx + 2] = data[sourceIdx + 2];
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+  };
+
+  static drawVerticalReflection = (
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    yOffset: number
+  ) => {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let j = 0; j < canvas.width; j++) {
+      for (let i = 0; i < yOffset; i++) {
+        const targetIdx = 4 * (i * canvas.width + j);
+        const sourceJ = j;
+        const sourceI = yOffset + (yOffset - i);
+        const sourceIdx = 4 * (sourceI * canvas.width + sourceJ);
+        data[targetIdx] = data[sourceIdx];
+        data[targetIdx + 1] = data[sourceIdx + 1];
+        data[targetIdx + 2] = data[sourceIdx + 2];
+      }
+    }
+    for (let j = 0; j < canvas.width; j++) {
+      for (let i = canvas.height - 1; i >= canvas.height - 1 - yOffset; i--) {
+        const targetIdx = 4 * (i * canvas.width + j);
+        const sourceJ = j;
+        const sourceI =
+          canvas.height - 1 - yOffset - (yOffset - (canvas.height - i));
+        const sourceIdx = 4 * (sourceI * canvas.width + sourceJ);
+        data[targetIdx] = data[sourceIdx];
+        data[targetIdx + 1] = data[sourceIdx + 1];
+        data[targetIdx + 2] = data[sourceIdx + 2];
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
+  };
+
   // The image must be loaded!
   static getCanvasImg = (
     img: HTMLImageElement
@@ -247,8 +309,8 @@ export class ImageUtility {
     if (!ctx) return;
     // fix scaling
     const scale = Math.min(canvasSize / img.width, canvasSize / img.height);
-    const width = img.width * scale;
-    const height = img.height * scale;
+    const width = Math.floor(img.width * scale);
+    const height = Math.floor(img.height * scale);
     ctx?.clearRect(0, 0, canvasSize, canvasSize);
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, canvasSize, canvasSize);
@@ -256,13 +318,18 @@ export class ImageUtility {
     // extract and set padding data
     if (img.naturalHeight > img.naturalWidth) {
       // horizontal padding, x offset
-      const xOffset = (canvasSize - width) / 2;
-
+      const xOffset = Math.floor((canvasSize - width) / 2);
       ctx.drawImage(img, xOffset, 0, width, height);
+
+      // draw reflected image padding
+      this.drawHorizontalReflection(ctx, canvas, xOffset);
     } else {
       // vertical padding, y offset
-      const yOffset = (canvasSize - height) / 2;
+      const yOffset = Math.floor((canvasSize - height) / 2);
       ctx.drawImage(img, 0, yOffset, width, height);
+
+      // draw reflected image padding
+      this.drawVerticalReflection(ctx, canvas, yOffset);
     }
     return canvas;
   };

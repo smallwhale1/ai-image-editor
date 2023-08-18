@@ -330,10 +330,8 @@ const GenerativeFill = () => {
     try {
       const canvasOriginalImg = ImageUtility.getCanvasImg(img);
       if (!canvasOriginalImg) return;
-      const canvasMask = ImageUtility.getCanvasMask(canvas);
+      const canvasMask = ImageUtility.getCanvasMask(canvas, canvasOriginalImg);
       if (!canvasMask) return;
-      ImageUtility.downloadCanvas(canvasOriginalImg);
-      ImageUtility.downloadCanvas(canvasMask);
       const maskBlob = await ImageUtility.canvasToBlob(canvasMask);
       const imgBlob = await ImageUtility.canvasToBlob(canvasOriginalImg);
 
@@ -351,7 +349,7 @@ const GenerativeFill = () => {
       const { urls } = res as APISuccess;
       const imgUrls = await Promise.all(
         urls.map((url) =>
-          ImageUtility.convertImageToCanvasDataURL(
+          ImageUtility.convertImgToCanvasUrl(
             url,
             canvasDims.width,
             canvasDims.height
@@ -379,7 +377,7 @@ const GenerativeFill = () => {
   return (
     <div className={styles.container}>
       <div className={styles.controls}>
-        <h1>AI Image Editor</h1>
+        <h1>Image Editor</h1>
         <Buttons
           canvasRef={canvasRef}
           getEdit={getEdit}
