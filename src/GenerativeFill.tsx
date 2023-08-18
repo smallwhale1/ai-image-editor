@@ -146,8 +146,7 @@ const GenerativeFill = () => {
       currImg.current,
       canvasRef,
       canvasDims.width,
-      canvasDims.height,
-      true
+      canvasDims.height
     );
   };
 
@@ -331,7 +330,11 @@ const GenerativeFill = () => {
     try {
       const canvasOriginalImg = ImageUtility.getCanvasImg(img);
       if (!canvasOriginalImg) return;
-      const maskBlob = await ImageUtility.canvasToBlob(canvas);
+      const canvasMask = ImageUtility.getCanvasMask(canvas);
+      if (!canvasMask) return;
+      ImageUtility.downloadCanvas(canvasOriginalImg);
+      ImageUtility.downloadCanvas(canvasMask);
+      const maskBlob = await ImageUtility.canvasToBlob(canvasMask);
       const imgBlob = await ImageUtility.canvasToBlob(canvasOriginalImg);
 
       const res = await ImageUtility.getEdit(
@@ -346,20 +349,31 @@ const GenerativeFill = () => {
       // const res = await ImageUtility.mockGetEdit();
 
       const { urls } = res as APISuccess;
+      const imgUrls = await Promise.all(
+        urls.map((url) =>
+          ImageUtility.convertImageToCanvasDataURL(
+            url,
+            canvasDims.width,
+            canvasDims.height
+          )
+        )
+      );
       const image = new Image();
-      image.src = urls[0];
-      setLoading(false);
-      setEdits(urls);
+      image.src = imgUrls[0];
+
+      setEdits(imgUrls);
       ImageUtility.drawImgToCanvas(
         image,
         canvasRef,
         canvasDims.width,
         canvasDims.height
       );
+
       currImg.current = image;
     } catch (err) {
       console.log(err);
     }
+    setLoading(false);
   };
 
   return (
@@ -502,10 +516,7 @@ const GenerativeFill = () => {
                   img,
                   canvasRef,
                   canvasDims.width,
-                  canvasDims.height,
-                  true,
-                  undefined,
-                  paddingInfo.current
+                  canvasDims.height
                 );
                 currImg.current = img;
               }}
@@ -527,7 +538,7 @@ const GenerativeFill = () => {
                 Original
               </label>
               <img
-                height={100}
+                width={100}
                 src={originalImg.current?.src}
                 style={{ cursor: "pointer" }}
                 onClick={() => {
@@ -540,10 +551,7 @@ const GenerativeFill = () => {
                     img,
                     canvasRef,
                     canvasDims.width,
-                    canvasDims.height,
-                    true,
-                    paddingInfo,
-                    undefined
+                    canvasDims.height
                   );
                   currImg.current = img;
                 }}

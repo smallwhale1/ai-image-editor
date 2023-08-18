@@ -110,43 +110,93 @@ export class ImageUtility {
     };
   };
 
+  // given a square api image, get the cropped img
   static getCroppedImg = (
     img: HTMLImageElement,
-    readablePaddingData: PaddingInfo,
     width: number,
     height: number
-  ) => {
-    if (img.naturalHeight > img.naturalWidth) {
-      // horizontal padding, x offset
-      const xOffset = (canvasSize - width) / 2;
-    } else {
-      // vertical padding, y offset
-      const yOffset = (canvasSize - height) / 2;
+  ): HTMLCanvasElement | undefined => {
+    // Create a new canvas element
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      // Clear the canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (width < height) {
+        // horizontal padding, x offset
+        const xOffset = (canvasSize - width) / 2;
+        console.log(xOffset);
+        ctx.drawImage(
+          img,
+          xOffset,
+          0,
+          canvas.width,
+          canvas.height,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+      } else {
+        // vertical padding, y offset
+        const yOffset = (canvasSize - height) / 2;
+        ctx.drawImage(
+          img,
+          0,
+          yOffset,
+          canvas.width,
+          canvas.height,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+      }
+      return canvas;
     }
+  };
+
+  static convertImageToCanvasDataURL = async (
+    imageSrc: string,
+    width: number,
+    height: number
+  ): Promise<string> => {
+    return new Promise<string>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = this.getCroppedImg(img, width, height);
+        if (canvas) {
+          const dataUrl = canvas.toDataURL();
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = (error) => {
+        reject(error);
+      };
+      img.src = imageSrc;
+    });
   };
 
   static drawImgToCanvas = (
     img: HTMLImageElement,
     canvasRef: React.RefObject<HTMLCanvasElement>,
     width: number,
-    height: number,
-    drawPadding?: boolean,
-    mutablePaddingData?: React.MutableRefObject<PaddingInfo>,
-    readablePaddingData?: PaddingInfo
+    height: number
   ) => {
     const drawImg = (img: HTMLImageElement) => {
       const ctx = this.getCanvasContext(canvasRef);
       if (!ctx) return;
       ctx.globalCompositeOperation = "source-over";
-      // TODO: support more than square-shaped images
-      const scale = Math.min(
-        canvasSize / img.naturalWidth,
-        canvasSize / img.naturalHeight
-      );
-      const finalWidth = img.naturalWidth * scale;
-      const finalHeight = img.naturalHeight * scale;
+      // const scale = Math.min(
+      //   canvasSize / img.naturalWidth,
+      //   canvasSize / img.naturalHeight
+      // );
+      // const finalWidth = img.naturalWidth * scale;
+      // const finalHeight = img.naturalHeight * scale;
       ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
+      ctx.drawImage(img, 0, 0, width, height);
     };
 
     if (img.complete) {
@@ -156,6 +206,34 @@ export class ImageUtility {
         drawImg(img);
       };
     }
+  };
+
+  // The image must be loaded!
+  static getCanvasMask = (
+    srcCanvas: HTMLCanvasElement
+  ): HTMLCanvasElement | undefined => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx?.clearRect(0, 0, canvasSize, canvasSize);
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+    // extract and set padding data
+    if (srcCanvas.height > srcCanvas.width) {
+      // horizontal padding, x offset
+      const xOffset = (canvasSize - srcCanvas.width) / 2;
+      ctx?.clearRect(xOffset, 0, srcCanvas.width, srcCanvas.height);
+      ctx.drawImage(srcCanvas, xOffset, 0, srcCanvas.width, srcCanvas.height);
+    } else {
+      // vertical padding, y offset
+      const yOffset = (canvasSize - srcCanvas.height) / 2;
+      ctx?.clearRect(0, yOffset, srcCanvas.width, srcCanvas.height);
+      ctx.drawImage(srcCanvas, 0, yOffset, srcCanvas.width, srcCanvas.height);
+    }
+    return canvas;
   };
 
   // The image must be loaded!
@@ -184,7 +262,6 @@ export class ImageUtility {
     } else {
       // vertical padding, y offset
       const yOffset = (canvasSize - height) / 2;
-
       ctx.drawImage(img, 0, yOffset, width, height);
     }
     return canvas;
